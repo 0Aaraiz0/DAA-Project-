@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CS302 Algorithm Workbench - Divide & Conquer Visualizer</title>
+  <style>
+    :root {
+      --primary: #1a5fb4;
+      --primary-dark: #1c3f73;
+      --secondary: #26a269;
+      --accent: #e66100;
+      --danger: #c01c28;
+      --bg: #f6f8fa;
+      --card-bg: #ffffff;
+      --text: #24292f;
+      --text-muted: #57606a;
+      --border: #d0d7de;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background: var(--bg); color: var(--text); line-height: 1.5; padding: 20px; }
+    header { background: var(--card-bg); padding: 20px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    h1 { font-size: 1.5rem; color: var(--primary-dark); margin-bottom: 5px; }
+    p.subtitle { color: var(--text-muted); font-size: 0.95rem; }
+    
+    .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+    .tab-btn { background: #e1e4e8; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; color: var(--text); }
+    .tab-btn.active { background: var(--primary); color: #fff; }
+    
+    .view-panel { display: none; }
+    .view-panel.active { display: block; }
+    
+    .grid { display: grid; grid-template-columns: 340px 1fr; gap: 20px; }
+    .card { background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border); padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .card h2 { font-size: 1.15rem; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 8px; color: var(--primary-dark); }
+    
+    label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 5px; color: var(--text); }
+    select, input[type="file"], textarea, button { width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 12px; font-size: 0.9rem; }
+    button.btn-primary { background: var(--primary); color: white; border: none; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    button.btn-primary:hover { background: var(--primary-dark); }
+    button.btn-secondary { background: var(--secondary); color: white; border: none; font-weight: 600; cursor: pointer; }
+    button.btn-secondary:hover { background: #1f8b57; }
+    
+    .metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
+    .metric-box { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px; text-align: center; }
+    .metric-val { font-size: 1.25rem; font-weight: 700; color: var(--primary); }
+    .metric-lbl { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    
+    canvas { background: #ffffff; border: 1px solid var(--border); border-radius: 6px; width: 100%; height: 440px; }
+    .log-box { background: #1e1e1e; color: #d4d4d4; font-family: "Courier New", monospace; font-size: 0.85rem; padding: 12px; border-radius: 6px; height: 160px; overflow-y: auto; margin-top: 15px; }
+    .log-entry { margin-bottom: 4px; }
+    .log-success { color: #4ec9b0; }
+    .log-info { color: #9cdcfe; }
+    .log-accent { color: #ce9178; }
+    .log-error { color: #f48771; }
+    td, th { padding: 5px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>CS302 Algorithm Workbench: Divide & Conquer Suite</h1>
+    <p class="subtitle">Interactive Testing, Step-by-Step Visualization, and Empirical Benchmarking for Closest Pair & Karatsuba Multiplication</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('cp')">1. Closest Pair of Points (2D)</button>
+    <button class="tab-btn" onclick="switchTab('km')">2. Large Integer Multiplication (Karatsuba)</button>
+    <button class="tab-btn" onclick="switchTab('bench')">3. Benchmark Dashboard</button>
+  </div>
+
+  <!-- PANEL 1: CLOSEST PAIR -->
+  <div id="panel-cp" class="view-panel active">
+    <div class="grid">
+      <div class="card">
+        <h2>Dataset & Controls</h2>
+        <label>Select Dataset File (Size &gt; 100):</label>
+        <select id="cp-preset" onchange="loadPresetCP()">
+          <option value="">Loading datasets...</option>
+        </select>
+
+        <label>Or Upload Custom File (.txt):</label>
+        <input type="file" id="cp-file" accept=".txt" onchange="handleFileUploadCP(event)">
+
+        <label>Execution Mode:</label>
+        <button class="btn-primary" onclick="runClosestPair('dc')">Run Divide & Conquer O(n log n)</button>
+        <button class="btn-secondary" onclick="runClosestPair('bf')">Run Brute Force O(n²)</button>
+
+        <div class="metrics">
+          <div class="metric-box">
+            <div class="metric-val" id="cp-dist">--</div>
+            <div class="metric-lbl">Min Distance</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-val" id="cp-time">-- ms</div>
+            <div class="metric-lbl">Runtime</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-val" id="cp-comps">--</div>
+            <div class="metric-lbl">Comparisons</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-val" id="cp-n">--</div>
+            <div class="metric-lbl">Points Count (n)</div>
+          </div>
+        </div>
+
+        <div class="log-box" id="cp-log">
+          <div class="log-entry log-info">[System Ready] Select or upload dataset to begin.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Divide & Conquer Geometry Canvas</h2>
+        <canvas id="cp-canvas" width="800" height="500"></canvas>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 8px;">
+          <strong>Visualization Legend:</strong> Blue dots = input points; Red dashed line = median split vertical line; Grey shaded area = 2δ strip; Red circles & connecting line = closest pair found.
+          Divide & Conquer replays its top recursion levels one split at a time; Brute Force replays each time a closer pair is found (orange line).
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL 2: KARATSUBA -->
+  <div id="panel-km" class="view-panel">
+    <div class="grid">
+      <div class="card">
+        <h2>Multiplication Inputs</h2>
+        <label>Select Dataset File (&gt; 100 digits):</label>
+        <select id="km-preset" onchange="loadPresetKM()">
+          <option value="">Loading datasets...</option>
+        </select>
+
+        <label>Or Upload Custom File (.txt, two lines: X then Y):</label>
+        <input type="file" id="km-file" accept=".txt" onchange="handleFileUploadKM(event)">
+
+        <label>Multiplicand X (First Big Integer):</label>
+        <textarea id="km-x" rows="3" style="font-family: monospace; font-size: 0.8rem;"></textarea>
+
+        <label>Multiplicand Y (Second Big Integer):</label>
+        <textarea id="km-y" rows="3" style="font-family: monospace; font-size: 0.8rem;"></textarea>
+
+        <button class="btn-primary" onclick="runMultiplication('karatsuba')">Run Karatsuba O(n^1.585)</button>
+        <button class="btn-secondary" onclick="runMultiplication('schoolbook')">Run Schoolbook O(n²)</button>
+
+        <div class="metrics">
+          <div class="metric-box">
+            <div class="metric-val" id="km-digits">--</div>
+            <div class="metric-lbl">Digit Length</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-val" id="km-time">-- ms</div>
+            <div class="metric-lbl">Runtime</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-val" id="km-rec">--</div>
+            <div class="metric-lbl">Subproblems</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-val" id="km-match">--</div>
+            <div class="metric-lbl">Verification</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Computation Result & Decomposition Tree</h2>
+        <label>Product Result (X × Y):</label>
+        <textarea id="km-res" rows="4" readonly style="font-family: monospace; font-size: 0.8rem; background: #fafbfc;"></textarea>
+
+        <h3 style="font-size: 0.95rem; margin-top: 15px; margin-bottom: 8px; color: var(--primary-dark);">Recursive Divide & Conquer Trace</h3>
+        <div class="log-box" id="km-log" style="height: 240px;">
+          <div class="log-entry log-info">[Karatsuba Ready] Awaiting big integer execution.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL 3: BENCHMARK DASHBOARD -->
+  <div id="panel-bench" class="view-panel">
+    <div class="card" style="margin-bottom: 20px;">
+      <h2>Empirical Benchmark Summary (20 Datasets Execution)</h2>
+      <p style="margin-bottom: 15px; color: var(--text-muted); font-size: 0.9rem;">
+        Runs every dataset in the <code>datasets/</code> folder (10 closest-pair files and 10 multiplication files, all with size &gt; 100)
+        through both algorithms in the Python backend, checks every answer against ground truth, and reports measured times.
+      </p>
+      <button class="btn-primary" id="bench-btn" onclick="runBenchmark()" style="max-width: 320px;">Run Benchmark on All 20 Datasets</button>
+      <p id="bench-status" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;"></p>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div>
+          <h3 style="font-size: 1rem; color: var(--primary); margin-bottom: 10px;">Closest Pair Execution Time</h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
+            <thead>
+              <tr style="background: #eef2f8; border-bottom: 2px solid var(--border);">
+                <th style="padding: 6px;">File</th>
+                <th style="padding: 6px;">Points (n)</th>
+                <th style="padding: 6px;">D&C Time (ms)</th>
+                <th style="padding: 6px;">Brute Force (ms)</th>
+                <th style="padding: 6px;">Speedup</th>
+              </tr>
+            </thead>
+            <tbody id="bench-cp"></tbody>
+          </table>
+        </div>
+        <div>
+          <h3 style="font-size: 1rem; color: var(--secondary); margin-bottom: 10px;">Karatsuba Execution Time</h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
+            <thead>
+              <tr style="background: #eef8f2; border-bottom: 2px solid var(--border);">
+                <th style="padding: 6px;">File</th>
+                <th style="padding: 6px;">Digits (d)</th>
+                <th style="padding: 6px;">Karatsuba (ms)</th>
+                <th style="padding: 6px;">Schoolbook (ms)</th>
+                <th style="padding: 6px;">Speedup</th>
+              </tr>
+            </thead>
+            <tbody id="bench-mul"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+      if(tabId === 'cp') {
+        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        $('panel-cp').classList.add('active');
+      } else if(tabId === 'km') {
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        $('panel-km').classList.add('active');
+      } else {
+        document.querySelectorAll('.tab-btn')[2].classList.add('active');
+        $('panel-bench').classList.add('active');
+      }
+    }
+
+    // --- BACKEND HELPERS ---
+    async function api(path, body) {
+      const opts = body ? { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) } : {};
+      let res;
+      try { res = await fetch(path, opts); }
+      catch(e) { throw new Error('Backend not reachable. Start it with: python main.py'); }
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error || 'Request failed');
+      return data;
+    }
+    function addLog(boxId, msg, cls='log-info') {
+      const box = $(boxId);
+      const div = document.createElement('div');
+      div.className = `log-entry ${cls}`;
+      div.innerText = msg;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+    const fmt = (v, d=2) => Number(v).toLocaleString(undefined, {minimumFractionDigits: d, maximumFractionDigits: d});
+
+    async function loadDatasetList() {
+      try {
+        const ds = await api('/api/datasets');
+        $('cp-preset').innerHTML = ds.cp.map(d => `<option value="${d.name}">${d.name} (n = ${d.size} points)</option>`).join('');
+        $('km-preset').innerHTML = ds.mul.map(d => `<option value="${d.name}">${d.name} (${d.size} digits)</option>`).join('');
+        if(ds.cp.length) loadPresetCP();
+        if(ds.mul.length) loadPresetKM();
+      } catch(e) {
+        addLog('cp-log', e.message, 'log-error');
+        addLog('km-log', e.message, 'log-error');
+      }
+    }
+
+    // --- CLOSEST PAIR LOGIC ---
+    let cpText = '';          // raw text of the currently selected dataset file
+    let currentPoints = [];   // raw coordinates
+    let view = null;          // raw -> canvas mapping
+    let animToken = 0;
+    const canvas = $('cp-canvas');
+    const ctx = canvas.getContext('2d');
+
+    function parsePoints(text) {
+      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+      const n = parseInt(lines[0]);
+      const pts = [];
+      for(let i=1; i<=n && i<lines.length; i++) {
+        const parts = lines[i].split(/\s+/);
+        if(parts.length >= 2) pts.push({ x: parseFloat(parts[0]), y: parseFloat(parts[1]) });
+      }
+      return pts;
+    }
+
+    function setView(pts) {
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for(const p of pts) {
+        if(p.x < minX) minX = p.x; if(p.x > maxX) maxX = p.x;
+        if(p.y < minY) minY = p.y; if(p.y > maxY) maxY = p.y;
+      }
+      view = { minX, minY, sx: 720 / ((maxX - minX) || 1), sy: 420 / ((maxY - minY) || 1) };
+    }
+    const mx = x => 40 + (x - view.minX) * view.sx;
+    const my = y => 40 + (y - view.minY) * view.sy;
+
+    // lines: [{x, d, active}] vertical split lines; strip is drawn for the active one
+    function drawPoints(pts, pair = null, lines = [], bestSoFar = null) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for(const L of lines) {
+        const cx = mx(L.x);
+        if(L.active && L.d !== null) {
+          ctx.fillStyle = 'rgba(230, 230, 230, 0.5)';
+          const half = L.d * view.sx;
+          ctx.fillRect(cx - half, 0, 2 * half, canvas.height);
+        }
+        ctx.strokeStyle = L.active ? '#c01c28' : 'rgba(192, 28, 40, 0.3)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 6]);
+        ctx.beginPath();
+        ctx.moveTo(cx, 0);
+        ctx.lineTo(cx, canvas.height);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      ctx.fillStyle = '#1a5fb4';
+      for(const p of pts) {
+        ctx.beginPath();
+        ctx.arc(mx(p.x), my(p.y), 3, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+
+      if(bestSoFar) {  // brute-force progress (orange)
+        ctx.strokeStyle = '#e66100';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(mx(bestSoFar[0][0]), my(bestSoFar[0][1]));
+        ctx.lineTo(mx(bestSoFar[1][0]), my(bestSoFar[1][1]));
+        ctx.stroke();
+      }
+
+      if(pair) {
+        ctx.strokeStyle = '#c01c28';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(mx(pair[0][0]), my(pair[0][1]));
+        ctx.lineTo(mx(pair[1][0]), my(pair[1][1]));
+        ctx.stroke();
+        ctx.fillStyle = '#c01c28';
+        for(const q of pair) {
+          ctx.beginPath();
+          ctx.arc(mx(q[0]), my(q[1]), 6, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+      }
+    }
+
+    function resetCPMetrics() {
+      ['cp-dist','cp-comps'].forEach(id => $(id).innerText = '--');
+      $('cp-time').innerText = '-- ms';
+    }
+
+    function showPoints(text, label, cls) {
+      animToken++;
+      const pts = parsePoints(text);
+      if(pts.length < 2 || pts.some(p => isNaN(p.x) || isNaN(p.y))) {
+        addLog('cp-log', `Could not read points from ${label}. Expected: first line n, then n lines "x y".`, 'log-error');
+        return;
+      }
+      cpText = text;
+      currentPoints = pts;
+      setView(pts);
+      $('cp-n').innerText = pts.length.toLocaleString();
+      resetCPMetrics();
+      drawPoints(pts);
+      addLog('cp-log', `Loaded ${pts.length} points from ${label}.`, cls);
+    }
+
+    async function loadPresetCP() {
+      const name = $('cp-preset').value;
+      if(!name) return;
+      try {
+        const res = await fetch('/datasets/' + encodeURIComponent(name));
+        if(!res.ok) throw new Error('Dataset not found');
+        showPoints(await res.text(), name, 'log-info');
+      } catch(e) { addLog('cp-log', e.message, 'log-error'); }
+    }
+
+    function handleFileUploadCP(e) {
+      const file = e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = evt => showPoints(evt.target.result, file.name, 'log-success');
+      reader.readAsText(file);
+    }
+
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    async function runClosestPair(algo) {
+      if(!cpText) { addLog('cp-log', 'Select or upload a dataset first.', 'log-error'); return; }
+      const token = ++animToken;
+      let r;
+      try {
+        addLog('cp-log', `Running ${algo === 'dc' ? 'Divide & Conquer' : 'Brute Force'} on ${currentPoints.length} points...`);
+        r = await api('/api/closest_pair', { text: cpText, algo });
+      } catch(e) { addLog('cp-log', e.message, 'log-error'); return; }
+      if(token !== animToken) return;
+
+      $('cp-dist').innerText = fmt(r.distance, 4);
+      $('cp-time').innerText = fmt(r.time_ms, 3) + ' ms';
+      $('cp-comps').innerText = r.comparisons.toLocaleString();
+      $('cp-n').innerText = r.n.toLocaleString();
+
+      if(algo === 'dc') {
+        const done = [];
+        for(const s of r.steps) {
+          if(token !== animToken) return;
+          const lines = done.map(x => ({ x, d: null, active: false }));
+          lines.push({ x: s.mid_x, d: s.delta, active: true });
+          drawPoints(currentPoints, null, lines);
+          addLog('cp-log',
+            `Level ${s.depth}: split ${s.size} points at x = ${fmt(s.mid_x, 2)} | strip holds ${s.strip_size} points | ` +
+            `delta ${fmt(s.delta_before, 2)} -> ${fmt(s.delta, 2)}${s.improved ? ' (closer pair across the split!)' : ''}`,
+            s.improved ? 'log-accent' : 'log-info');
+          done.push(s.mid_x);
+          await sleep(450);
+        }
+        if(token !== animToken) return;
+        const top = r.steps.length ? [{ x: r.steps[0].mid_x, d: r.distance, active: true }] : [];
+        drawPoints(currentPoints, r.pair, top);
+        addLog('cp-log', `D&C done: d = ${fmt(r.distance, 4)}, ${r.comparisons.toLocaleString()} distance comparisons` +
+               (r.verified === null ? '.' : r.verified ? ' (verified against brute force).' : ' (MISMATCH vs brute force!)'), 'log-success');
+      } else {
+        const imp = r.improvements;
+        const delay = Math.max(15, Math.min(120, 4000 / Math.max(imp.length, 1)));
+        for(const s of imp) {
+          if(token !== animToken) return;
+          drawPoints(currentPoints, null, [], s.pair);
+          await sleep(delay);
+        }
+        if(token !== animToken) return;
+        drawPoints(currentPoints, r.pair);
+        addLog('cp-log', `Brute-Force done: d = ${fmt(r.distance, 4)}, ${r.comparisons.toLocaleString()} comparisons ` +
+               `(${imp.length} improvements found while scanning all pairs).`, 'log-accent');
+      }
+    }
+
+    // --- KARATSUBA LOGIC ---
+    function showNumbers(x, y, label, cls) {
+      if(!/^\d+$/.test(x) || !/^\d+$/.test(y)) {
+        addLog('km-log', `${label}: expected two lines of digits (X then Y).`, 'log-error');
+        return;
+      }
+      $('km-x').value = x;
+      $('km-y').value = y;
+      $('km-digits').innerText = Math.max(x.length, y.length).toLocaleString();
+      $('km-time').innerText = '-- ms';
+      $('km-rec').innerText = '--';
+      $('km-match').innerText = '--';
+      $('km-res').value = '';
+      $('km-log').innerHTML = '';
+      addLog('km-log', `Loaded ${label}: X has ${x.length} digits, Y has ${y.length} digits.`, cls);
+    }
+
+    async function loadPresetKM() {
+      const name = $('km-preset').value;
+      if(!name) return;
+      try {
+        const res = await fetch('/datasets/' + encodeURIComponent(name));
+        if(!res.ok) throw new Error('Dataset not found');
+        const lines = (await res.text()).split('\n').map(l => l.trim()).filter(Boolean);
+        showNumbers(lines[0], lines[1], name, 'log-info');
+      } catch(e) { addLog('km-log', e.message, 'log-error'); }
+    }
+
+    function handleFileUploadKM(e) {
+      const file = e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = evt => {
+        const lines = evt.target.result.split('\n').map(l => l.trim()).filter(Boolean);
+        showNumbers(lines[0] || '', lines[1] || '', file.name, 'log-success');
+      };
+      reader.readAsText(file);
+    }
+
+    async function runMultiplication(algo) {
+      const x = $('km-x').value.trim(), y = $('km-y').value.trim();
+      if(!x || !y) { addLog('km-log', 'Enter or load two integers first.', 'log-error'); return; }
+      $('km-log').innerHTML = '';
+      let r;
+      try { r = await api('/api/multiply', { x, y, algo }); }
+      catch(e) { addLog('km-log', e.message, 'log-error'); return; }
+
+      $('km-digits').innerText = Math.max(r.x_digits, r.y_digits).toLocaleString();
+      $('km-time').innerText = fmt(r.time_ms, 3) + ' ms';
+      $('km-res').value = r.product;
+      $('km-match').innerText = r.verified ? 'Verified 100%' : 'MISMATCH';
+
+      if(algo === 'karatsuba') {
+        $('km-rec').innerText = r.calls.toLocaleString() + ' calls';
+        addLog('km-log', `[Karatsuba] ${r.x_digits} x ${r.y_digits} digits -> ${r.calls.toLocaleString()} recursive calls, ` +
+               `${r.base_cases.toLocaleString()} schoolbook base cases, max depth ${r.max_depth}.`, 'log-success');
+        addLog('km-log', 'Identity: X1*Y0 + X0*Y1 = (X1+X0)*(Y1+Y0) - X1*Y1 - X0*Y0, so each level makes 3 recursive products instead of 4.', 'log-accent');
+        r.trace.forEach(line => addLog('km-log', line, line.includes('combine') ? 'log-success' : 'log-info'));
+        if(r.trace.length >= 60) addLog('km-log', '... (trace limited to the top recursion levels)', 'log-info');
+      } else {
+        $('km-rec').innerText = r.digit_mults.toLocaleString() + ' digit ops';
+        addLog('km-log', `[Schoolbook] ${r.x_digits} x ${r.y_digits} digits -> ${r.digit_mults.toLocaleString()} single-digit multiplications (n x m).`, 'log-success');
+        addLog('km-log', 'Every digit of X is multiplied by every digit of Y, with carries added column by column: O(n^2).', 'log-accent');
+      }
+      addLog('km-log', r.verified ? 'Result matches Python built-in integer multiplication.' : 'WARNING: result differs from ground truth.',
+             r.verified ? 'log-success' : 'log-error');
+    }
+
+    // --- BENCHMARK ---
+    async function runBenchmark() {
+      const btn = $('bench-btn');
+      btn.disabled = true;
+      $('bench-status').innerText = 'Running all 20 datasets in the backend (this takes a few seconds)...';
+      try {
+        const b = await api('/api/benchmark');
+        $('bench-cp').innerHTML = b.cp.map(r =>
+          `<tr><td>${r.file}</td><td>${r.n.toLocaleString()}</td><td>${fmt(r.dc_ms)}</td><td>${fmt(r.bf_ms)}</td><td>${fmt(r.speedup, 1)}x</td></tr>`).join('');
+        $('bench-mul').innerHTML = b.mul.map(r =>
+          `<tr><td>${r.file}</td><td>${r.digits.toLocaleString()}</td><td>${fmt(r.kar_ms)}</td><td>${fmt(r.sb_ms)}</td><td>${fmt(r.speedup, 1)}x</td></tr>`).join('');
+        $('bench-status').innerText = `Done: ${b.cp.length + b.mul.length} datasets executed, all results verified against ground truth (also saved to benchmark_results.csv).`;
+      } catch(e) {
+        $('bench-status').innerText = e.message;
+      }
+      btn.disabled = false;
+    }
+
+    loadDatasetList();
+  </script>
+</body>
+</html>

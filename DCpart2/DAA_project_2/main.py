@@ -4,6 +4,9 @@
     python main.py benchmark  -> runs all 20 datasets in the terminal
     python main.py cp | mul   -> quick console demo of one algorithm
     python main.py gen        -> regenerates the 20 dataset files
+    python main.py expected   -> writes expected_results.txt (reference answers)
+    python main.py verify     -> checks every algorithm against expected_results.txt
+    python main.py graphs     -> saves comparison graphs to graphs/ (needs matplotlib)
 
 The web page (web/index.html) talks to this Python backend:
     GET  /api/datasets    list of dataset files
@@ -204,6 +207,25 @@ def demo_karatsuba():
     print(f"{len(x)} digits | Karatsuba == Schoolbook == Python int: {k == s == str(int(x) * int(y))}")
 
 
+def run_expected():
+    from generate_expected import main as gen_expected
+    gen_expected()
+
+
+def run_verify():
+    from verify_results import verify
+    verify()
+
+
+def run_graphs():
+    try:
+        from plot_graphs import main as plot
+    except ImportError:
+        print("matplotlib is required for graphs:  pip install matplotlib")
+        return
+    plot()
+
+
 def main():
     ensure_datasets()
     cmd = sys.argv[1].lower() if len(sys.argv) > 1 else "web"
@@ -213,9 +235,10 @@ def main():
         "cp": demo_closest_pair, "closest_pair": demo_closest_pair,
         "mul": demo_karatsuba, "karatsuba": demo_karatsuba,
         "gen": generate_all_datasets, "generate": generate_all_datasets,
+        "expected": run_expected, "verify": run_verify, "graphs": run_graphs,
     }
     if cmd not in actions:
-        print("Unknown option. Use: web | benchmark | cp | mul | gen")
+        print("Unknown option. Use: web | benchmark | cp | mul | gen | expected | verify | graphs")
         return
     actions[cmd]()
 
